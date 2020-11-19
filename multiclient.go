@@ -87,7 +87,7 @@ func main() {
 type MultiClientConfig struct {
 	ConnectToServer string `default:"localhost:8080" argname:""`
 	PlayerNameBase  string `default:"MC_" argname:""`
-	Concurrent      int    `default:"1000" argname:""`
+	Concurrent      int    `default:"100000" argname:""`
 	AccountPool     int    `default:"0" argname:""`
 	AccountOverlap  int    `default:"0" argname:""`
 	LimitStartCount int    `default:"0" argname:""`
