@@ -1,0 +1,42 @@
+# github.com/gorilla/websocket v1.4.2
+## explicit
+github.com/gorilla/websocket
+# github.com/kasworld/actpersec v0.0.0-20191019021204-8c24cd60715c
+## explicit
+github.com/kasworld/actpersec
+# github.com/kasworld/argdefault v0.0.0-20200515031517-5b81c2684ab9
+## explicit
+github.com/kasworld/argdefault
+# github.com/kasworld/configutil v0.0.0-20191216014610-0147549c8f10
+## explicit
+github.com/kasworld/configutil
+# github.com/kasworld/g2rand v0.0.0-20200315073237-cff14c61a4f0
+## explicit
+# github.com/kasworld/log v0.0.0-20200824002943-744807d72114
+## explicit
+github.com/kasworld/log/logdestination_file
+github.com/kasworld/log/logdestination_stdio
+github.com/kasworld/log/logdestinationgroup
+github.com/kasworld/log/logdestinationi
+github.com/kasworld/log/logflagi
+github.com/kasworld/log/logflags
+# github.com/kasworld/multirun v0.0.0-20191216055936-decb66787001
+## explicit
+github.com/kasworld/multirun
+# github.com/kasworld/prettystring v0.0.0-20200313054137-8305061037e7
+## explicit
+github.com/kasworld/prettystring
+# github.com/kasworld/rangestat v0.0.0-20190508031937-d4380fb43f7a
+## explicit
+github.com/kasworld/rangestat
+# github.com/kasworld/uuidstr v0.0.0-20190503034528-2edffd24297a
+## explicit
+github.com/kasworld/uuidstr
+# github.com/kasworld/weblib v0.0.0-20200408024824-4b4f01a6be3f
+## explicit
+github.com/kasworld/weblib
+# github.com/smartystreets/goconvey v1.6.4
+## explicit
+# gopkg.in/ini.v1 v1.62.0
+## explicit
+gopkg.in/ini.v1
