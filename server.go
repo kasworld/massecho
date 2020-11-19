@@ -112,7 +112,9 @@ func (svr *Server) Run(tcpport string, httpport string, httpfolder string) {
 		case <-timerInfoTk.C:
 			svr.SendStat.UpdateLap()
 			svr.RecvStat.UpdateLap()
-			fmt.Printf("Send:%v Recv:%v\n", svr.SendStat, svr.RecvStat)
+			fmt.Printf("Connection:%v Send:%v Recv:%v\n",
+				svr.connManager.Len(),
+				svr.SendStat, svr.RecvStat)
 		}
 	}
 }
