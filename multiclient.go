@@ -20,6 +20,7 @@ import (
 	"github.com/kasworld/argdefault"
 	"github.com/kasworld/configutil"
 	"github.com/kasworld/massecho/lib/melog"
+	"github.com/kasworld/massecho/protocol_me/me_conntcp"
 	"github.com/kasworld/massecho/protocol_me/me_connwsgorilla"
 	"github.com/kasworld/massecho/protocol_me/me_error"
 	"github.com/kasworld/massecho/protocol_me/me_gob"
@@ -71,6 +72,7 @@ func main() {
 		func(i int) interface{} {
 			return AppArg{
 				ConnectToServer: config.ConnectToServer,
+				NetType:         config.NetType,
 				Nickname:        fmt.Sprintf("%v_%v", config.PlayerNameBase, i),
 				SessionUUID:     "",
 				Auth:            "",
@@ -86,6 +88,7 @@ func main() {
 
 type MultiClientConfig struct {
 	ConnectToServer string `default:"localhost:8080" argname:""`
+	NetType         string `default:"ws" argname:""`
 	PlayerNameBase  string `default:"MC_" argname:""`
 	Concurrent      int    `default:"100000" argname:""`
 	AccountPool     int    `default:"0" argname:""`
@@ -96,6 +99,7 @@ type MultiClientConfig struct {
 
 type AppArg struct {
 	ConnectToServer string
+	NetType         string
 	Nickname        string
 	SessionUUID     string
 	Auth            string
@@ -104,6 +108,7 @@ type AppArg struct {
 type App struct {
 	config            AppArg
 	c2scWS            *me_connwsgorilla.Connection
+	c2scTCP           *me_conntcp.Connection
 	EnqueueSendPacket func(pk me_packet.Packet) error
 	runResult         error
 
@@ -144,6 +149,31 @@ func (app *App) Run(mainctx context.Context) {
 	app.sendRecvStop = stopFn
 	defer app.sendRecvStop()
 
+	switch app.config.NetType {
+	default:
+		fmt.Printf("unsupported nettype %v\n", app.config.NetType)
+		return
+	case "tcp":
+		app.connectTCP(ctx)
+	case "ws":
+		app.connectWS(ctx)
+	}
+
+	timerPingTk := time.NewTicker(time.Second)
+	defer timerPingTk.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-timerPingTk.C:
+			go app.reqEcho()
+
+		}
+	}
+}
+
+func (app *App) connectWS(ctx context.Context) {
 	app.c2scWS = me_connwsgorilla.New(
 		readTimeoutSec, writeTimeoutSec,
 		me_gob.MarshalBodyFn,
@@ -151,28 +181,34 @@ func (app *App) Run(mainctx context.Context) {
 		app.handleSentPacket,
 	)
 	if err := app.c2scWS.ConnectTo(app.config.ConnectToServer); err != nil {
+		app.runResult = err
 		fmt.Printf("%v\n", err)
 		app.sendRecvStop()
-		app.runResult = err
 		return
 	}
 	app.EnqueueSendPacket = app.c2scWS.EnqueueSendPacket
 	go func(ctx context.Context) {
 		app.runResult = app.c2scWS.Run(ctx)
 	}(ctx)
+}
 
-	timerPingTk := time.NewTicker(time.Second)
-	defer timerPingTk.Stop()
-loop:
-	for {
-		select {
-		case <-ctx.Done():
-			break loop
-		case <-timerPingTk.C:
-			go app.reqEcho()
-
-		}
+func (app *App) connectTCP(ctx context.Context) {
+	app.c2scTCP = me_conntcp.New(
+		readTimeoutSec, writeTimeoutSec,
+		me_gob.MarshalBodyFn,
+		app.handleRecvPacket,
+		app.handleSentPacket,
+	)
+	if err := app.c2scTCP.ConnectTo(app.config.ConnectToServer); err != nil {
+		app.runResult = err
+		fmt.Printf("%v\n", err)
+		app.sendRecvStop()
+		return
 	}
+	app.EnqueueSendPacket = app.c2scTCP.EnqueueSendPacket
+	go func(ctx context.Context) {
+		app.runResult = app.c2scTCP.Run(ctx)
+	}(ctx)
 }
 
 func (app *App) reqEcho() error {
