@@ -21,6 +21,7 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/kasworld/actpersec"
+	"github.com/kasworld/massecho/lib/idu64str"
 	"github.com/kasworld/massecho/protocol_me/me_authorize"
 	"github.com/kasworld/massecho/protocol_me/me_connbytemanager"
 	"github.com/kasworld/massecho/protocol_me/me_error"
@@ -32,7 +33,6 @@ import (
 	"github.com/kasworld/massecho/protocol_me/me_statapierror"
 	"github.com/kasworld/massecho/protocol_me/me_statnoti"
 	"github.com/kasworld/massecho/protocol_me/me_statserveapi"
-	"github.com/kasworld/uuidstr"
 )
 
 // service const
@@ -148,7 +148,7 @@ func (svr *Server) serveWebSocketClient(ctx context.Context, w http.ResponseWrit
 		return
 	}
 
-	connID := uuidstr.New()
+	connID := idu64str.G_Maker.New()
 	c2sc := me_serveconnbyte.NewWithStats(
 		connID,
 		sendBufferSize,
@@ -208,7 +208,7 @@ func (svr *Server) serveTCP(ctx context.Context, port string) {
 
 func (svr *Server) serveTCPClient(ctx context.Context, conn *net.TCPConn) {
 
-	connID := uuidstr.New()
+	connID := idu64str.G_Maker.New()
 	c2sc := me_serveconnbyte.NewWithStats(
 		connID,
 		sendBufferSize,
