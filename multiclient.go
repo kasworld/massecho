@@ -18,8 +18,6 @@ import (
 	"time"
 
 	"github.com/kasworld/argdefault"
-	"github.com/kasworld/configutil"
-	"github.com/kasworld/massecho/lib/melog"
 	"github.com/kasworld/massecho/protocol_me/me_conntcp"
 	"github.com/kasworld/massecho/protocol_me/me_connwsgorilla"
 	"github.com/kasworld/massecho/protocol_me/me_error"
@@ -43,18 +41,23 @@ const (
 	writeTimeoutSec = 3 * time.Second
 )
 
+type MultiClientConfig struct {
+	ConnectToServer string `default:"localhost:8080" argname:""`
+	NetType         string `default:"ws" argname:""`
+	PlayerNameBase  string `default:"MC_" argname:""`
+	Concurrent      int    `default:"100000" argname:""`
+	AccountPool     int    `default:"0" argname:""`
+	AccountOverlap  int    `default:"0" argname:""`
+	LimitStartCount int    `default:"0" argname:""`
+	LimitEndCount   int    `default:"0" argname:""`
+}
+
 func main() {
-	configurl := flag.String("i", "", "client config file or url")
 	ads := argdefault.New(&MultiClientConfig{})
 	ads.RegisterFlag()
 	flag.Parse()
 	config := &MultiClientConfig{}
 	ads.SetDefaultToNonZeroField(config)
-	if *configurl != "" {
-		if err := configutil.LoadIni(*configurl, config); err != nil {
-			melog.Error("%v", err)
-		}
-	}
 	ads.ApplyFlagTo(config)
 	fmt.Println(prettystring.PrettyString(config, 4))
 
@@ -67,7 +70,7 @@ func main() {
 		config.LimitStartCount,
 		config.LimitEndCount,
 		func(config interface{}) multirun.ClientI {
-			return NewApp(config.(AppArg), melog.GlobalLogger)
+			return NewApp(config.(AppArg))
 		},
 		func(i int) interface{} {
 			return AppArg{
@@ -84,17 +87,6 @@ func main() {
 	for err := range chErr {
 		fmt.Printf("%v\n", err)
 	}
-}
-
-type MultiClientConfig struct {
-	ConnectToServer string `default:"localhost:8080" argname:""`
-	NetType         string `default:"ws" argname:""`
-	PlayerNameBase  string `default:"MC_" argname:""`
-	Concurrent      int    `default:"100000" argname:""`
-	AccountPool     int    `default:"0" argname:""`
-	AccountOverlap  int    `default:"0" argname:""`
-	LimitStartCount int    `default:"0" argname:""`
-	LimitEndCount   int    `default:"0" argname:""`
 }
 
 type AppArg struct {
@@ -120,7 +112,7 @@ type App struct {
 	pid2recv     *me_pid2rspfn.PID2RspFn
 }
 
-func NewApp(config AppArg, log *melog.LogBase) *App {
+func NewApp(config AppArg) *App {
 	app := &App{
 		config:      config,
 		apistat:     me_statcallapi.New(),

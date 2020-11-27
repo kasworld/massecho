@@ -1,16 +1,8 @@
 
-
 # del generated code 
 # Get-ChildItem .\enum\ -Recurse -Include *_gen.go | Remove-Item
 # Get-ChildItem .\protocol_me\ -Recurse -Include *_gen.go | Remove-Item
-# Remove-Item lib\melog\log_gen.go
 # Remove-Item config/dataversion/dataversion_gen.go 
-
-################################################################################
-Set-Location lib
-Write-Output "genlog -leveldatafile ./melog/melog.data -packagename melog "
-genlog -leveldatafile ./melog/melog.data -packagename melog 
-Set-Location ..
 
 ################################################################################
 $PROTOCOL_GOS_VERSION=makesha256sum protocol_me/*.enum protocol_me/me_obj/protocol_*.go

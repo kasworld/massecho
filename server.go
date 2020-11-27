@@ -21,6 +21,7 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/kasworld/actpersec"
+	"github.com/kasworld/argdefault"
 	"github.com/kasworld/massecho/lib/idu64str"
 	"github.com/kasworld/massecho/protocol_me/me_authorize"
 	"github.com/kasworld/massecho/protocol_me/me_connbytemanager"
@@ -33,6 +34,7 @@ import (
 	"github.com/kasworld/massecho/protocol_me/me_statapierror"
 	"github.com/kasworld/massecho/protocol_me/me_statnoti"
 	"github.com/kasworld/massecho/protocol_me/me_statserveapi"
+	"github.com/kasworld/prettystring"
 )
 
 // service const
@@ -42,17 +44,27 @@ const (
 	writeTimeoutSec = 3 * time.Second
 )
 
-func main() {
-	httpport := flag.String("httpport", ":8080", "Serve httpport")
-	httpfolder := flag.String("httpdir", "www", "Serve http Dir")
-	tcpport := flag.String("tcpport", ":8081", "Serve tcpport")
-	flag.Parse()
+type ServerConfig struct {
+	TcpPort    string `default:":8081" argname:""`
+	HttpPort   string `default:":8080" argname:""`
+	HttpFolder string `default:"www" argname:""`
+}
 
-	svr := NewServer()
-	svr.Run(*tcpport, *httpport, *httpfolder)
+func main() {
+	ads := argdefault.New(&ServerConfig{})
+	ads.RegisterFlag()
+	flag.Parse()
+	config := &ServerConfig{}
+	ads.SetDefaultToNonZeroField(config)
+	ads.ApplyFlagTo(config)
+	fmt.Println(prettystring.PrettyString(config, 4))
+
+	svr := NewServer(config)
+	svr.Run()
 }
 
 type Server struct {
+	config       *ServerConfig
 	sendRecvStop func()
 
 	connManager *me_connbytemanager.Manager
@@ -70,8 +82,9 @@ type Server struct {
 		me_packet.Header, interface{}, error)
 }
 
-func NewServer() *Server {
+func NewServer(config *ServerConfig) *Server {
 	svr := &Server{
+		config:      config,
 		connManager: me_connbytemanager.New(),
 		SendStat:    actpersec.New(),
 		RecvStat:    actpersec.New(),
@@ -94,13 +107,13 @@ func NewServer() *Server {
 	return svr
 }
 
-func (svr *Server) Run(tcpport string, httpport string, httpfolder string) {
+func (svr *Server) Run() {
 	ctx, stopFn := context.WithCancel(context.Background())
 	svr.sendRecvStop = stopFn
 	defer svr.sendRecvStop()
 
-	go svr.serveTCP(ctx, tcpport)
-	go svr.serveHTTP(ctx, httpport, httpfolder)
+	go svr.serveTCP(ctx, svr.config.TcpPort)
+	go svr.serveHTTP(ctx, svr.config.HttpPort, svr.config.HttpFolder)
 
 	timerInfoTk := time.NewTicker(1 * time.Second)
 	defer timerInfoTk.Stop()
