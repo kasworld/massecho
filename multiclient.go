@@ -42,14 +42,15 @@ const (
 )
 
 type MultiClientConfig struct {
-	ConnectToServer string `default:"localhost:8080" argname:""`
-	NetType         string `default:"ws" argname:""`
-	PlayerNameBase  string `default:"MC_" argname:""`
-	Concurrent      int    `default:"100000" argname:""`
-	AccountPool     int    `default:"0" argname:""`
-	AccountOverlap  int    `default:"0" argname:""`
-	LimitStartCount int    `default:"0" argname:""`
-	LimitEndCount   int    `default:"0" argname:""`
+	ConnectToServer  string `default:"localhost:8080" argname:""`
+	NetType          string `default:"ws" argname:""`
+	PlayerNameBase   string `default:"MC_" argname:""`
+	Concurrent       int    `default:"50000" argname:""`
+	AccountPool      int    `default:"0" argname:""`
+	AccountOverlap   int    `default:"0" argname:""`
+	LimitStartCount  int    `default:"0" argname:""`
+	LimitEndCount    int    `default:"0" argname:""`
+	PacketIntervalMS int    `default:"1000" argname:""` // milisecond
 }
 
 func main() {
@@ -74,11 +75,12 @@ func main() {
 		},
 		func(i int) interface{} {
 			return AppArg{
-				ConnectToServer: config.ConnectToServer,
-				NetType:         config.NetType,
-				Nickname:        fmt.Sprintf("%v_%v", config.PlayerNameBase, i),
-				SessionUUID:     "",
-				Auth:            "",
+				ConnectToServer:  config.ConnectToServer,
+				NetType:          config.NetType,
+				Nickname:         fmt.Sprintf("%v%v", config.PlayerNameBase, i),
+				SessionUUID:      "",
+				Auth:             "",
+				PacketIntervalMS: config.PacketIntervalMS,
 			}
 		},
 		chErr,
@@ -90,11 +92,12 @@ func main() {
 }
 
 type AppArg struct {
-	ConnectToServer string
-	NetType         string
-	Nickname        string
-	SessionUUID     string
-	Auth            string
+	ConnectToServer  string
+	NetType          string
+	Nickname         string
+	SessionUUID      string
+	Auth             string
+	PacketIntervalMS int
 }
 
 type App struct {
@@ -151,7 +154,7 @@ func (app *App) Run(mainctx context.Context) {
 		app.connectWS(ctx)
 	}
 
-	timerPingTk := time.NewTicker(time.Second)
+	timerPingTk := time.NewTicker(time.Millisecond * time.Duration(app.config.PacketIntervalMS))
 	defer timerPingTk.Stop()
 
 	for {
