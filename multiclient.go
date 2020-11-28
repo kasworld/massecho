@@ -20,15 +20,11 @@ import (
 	"github.com/kasworld/argdefault"
 	"github.com/kasworld/massecho/protocol_me/me_conntcp"
 	"github.com/kasworld/massecho/protocol_me/me_connwsgorilla"
-	"github.com/kasworld/massecho/protocol_me/me_error"
-	"github.com/kasworld/massecho/protocol_me/me_gob"
 	"github.com/kasworld/massecho/protocol_me/me_idcmd"
+	"github.com/kasworld/massecho/protocol_me/me_json"
 	"github.com/kasworld/massecho/protocol_me/me_obj"
 	"github.com/kasworld/massecho/protocol_me/me_packet"
 	"github.com/kasworld/massecho/protocol_me/me_pid2rspfn"
-	"github.com/kasworld/massecho/protocol_me/me_statapierror"
-	"github.com/kasworld/massecho/protocol_me/me_statcallapi"
-	"github.com/kasworld/massecho/protocol_me/me_statnoti"
 	"github.com/kasworld/multirun"
 	"github.com/kasworld/prettystring"
 	"github.com/kasworld/rangestat"
@@ -40,6 +36,9 @@ const (
 	readTimeoutSec  = 6 * time.Second
 	writeTimeoutSec = 3 * time.Second
 )
+
+var marshalBodyFn func(body interface{}, oldBuffToAppend []byte) ([]byte, byte, error)
+var unmarshalPacketFn func(h me_packet.Header, bodyData []byte) (interface{}, error)
 
 type MultiClientConfig struct {
 	ConnectToServer  string `default:"localhost:8080" argname:""`
@@ -61,6 +60,9 @@ func main() {
 	ads.SetDefaultToNonZeroField(config)
 	ads.ApplyFlagTo(config)
 	fmt.Println(prettystring.PrettyString(config, 4))
+
+	marshalBodyFn = me_json.MarshalBodyFn
+	unmarshalPacketFn = me_json.UnmarshalPacket
 
 	chErr := make(chan error)
 	go multirun.Run(
@@ -108,21 +110,13 @@ type App struct {
 	runResult         error
 
 	sendRecvStop func()
-	apistat      *me_statcallapi.StatCallAPI
-	pid2statobj  *me_statcallapi.PacketID2StatObj
-	notistat     *me_statnoti.StatNotification
-	errstat      *me_statapierror.StatAPIError
 	pid2recv     *me_pid2rspfn.PID2RspFn
 }
 
 func NewApp(config AppArg) *App {
 	app := &App{
-		config:      config,
-		apistat:     me_statcallapi.New(),
-		pid2statobj: me_statcallapi.NewPacketID2StatObj(),
-		notistat:    me_statnoti.New(),
-		errstat:     me_statapierror.New(),
-		pid2recv:    me_pid2rspfn.New(),
+		config:   config,
+		pid2recv: me_pid2rspfn.New(),
 	}
 	return app
 }
@@ -171,7 +165,7 @@ func (app *App) Run(mainctx context.Context) {
 func (app *App) connectWS(ctx context.Context) {
 	app.c2scWS = me_connwsgorilla.New(
 		readTimeoutSec, writeTimeoutSec,
-		me_gob.MarshalBodyFn,
+		marshalBodyFn,
 		app.handleRecvPacket,
 		app.handleSentPacket,
 	)
@@ -190,7 +184,7 @@ func (app *App) connectWS(ctx context.Context) {
 func (app *App) connectTCP(ctx context.Context) {
 	app.c2scTCP = me_conntcp.New(
 		readTimeoutSec, writeTimeoutSec,
-		me_gob.MarshalBodyFn,
+		marshalBodyFn,
 		app.handleRecvPacket,
 		app.handleSentPacket,
 	)
@@ -218,14 +212,11 @@ func (app *App) reqEcho() error {
 }
 
 func (app *App) handleSentPacket(header me_packet.Header) error {
-	if err := app.apistat.AfterSendReq(header); err != nil {
-		return err
-	}
 	return nil
 }
 
 func (app *App) handleRecvPacket(header me_packet.Header, body []byte) error {
-	robj, err := me_gob.UnmarshalPacket(header, body)
+	robj, err := unmarshalPacketFn(header, body)
 	if err != nil {
 		return err
 	}
@@ -234,26 +225,10 @@ func (app *App) handleRecvPacket(header me_packet.Header, body []byte) error {
 	default:
 		return fmt.Errorf("Invalid packet type %v %v", header, body)
 	case me_packet.Notification:
-		// noti stat
-		app.notistat.Add(header)
 		//process noti here
-		// robj, err := me_gob.UnmarshalPacket(header, body)
+		// robj, err := unmarshalPacketFn(header, body)
 
 	case me_packet.Response:
-		// error stat
-		app.errstat.Inc(me_idcmd.CommandID(header.Cmd), header.ErrorCode)
-		// api stat
-		if err := app.apistat.AfterRecvRsp(header); err != nil {
-			fmt.Printf("%v %v\n", app, err)
-			return err
-		}
-		psobj := app.pid2statobj.Get(header.ID)
-		if psobj == nil {
-			return fmt.Errorf("no statobj for %v", header.ID)
-		}
-		psobj.CallServerEnd(header.ErrorCode == me_error.None)
-		app.pid2statobj.Del(header.ID)
-
 		// process response
 		if err := app.pid2recv.HandleRsp(header, robj); err != nil {
 			return err
@@ -274,13 +249,6 @@ func (app *App) ReqWithRspFn(cmd me_idcmd.CommandID, body interface{},
 		},
 		Body: body,
 	}
-
-	// add api stat
-	psobj, err := app.apistat.BeforeSendReq(spk.Header)
-	if err != nil {
-		return nil
-	}
-	app.pid2statobj.Add(spk.Header.ID, psobj)
 
 	if err := app.EnqueueSendPacket(spk); err != nil {
 		fmt.Printf("End %v %v %v\n", app, spk, err)

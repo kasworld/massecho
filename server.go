@@ -26,8 +26,8 @@ import (
 	"github.com/kasworld/massecho/protocol_me/me_authorize"
 	"github.com/kasworld/massecho/protocol_me/me_connbytemanager"
 	"github.com/kasworld/massecho/protocol_me/me_error"
-	"github.com/kasworld/massecho/protocol_me/me_gob"
 	"github.com/kasworld/massecho/protocol_me/me_idcmd"
+	"github.com/kasworld/massecho/protocol_me/me_json"
 	"github.com/kasworld/massecho/protocol_me/me_obj"
 	"github.com/kasworld/massecho/protocol_me/me_packet"
 	"github.com/kasworld/massecho/protocol_me/me_serveconnbyte"
@@ -63,6 +63,9 @@ func main() {
 	svr.Run()
 }
 
+var marshalBodyFn func(body interface{}, oldBuffToAppend []byte) ([]byte, byte, error)
+var unmarshalPacketFn func(h me_packet.Header, bodyData []byte) (interface{}, error)
+
 type Server struct {
 	config       *ServerConfig
 	sendRecvStop func()
@@ -75,8 +78,6 @@ type Server struct {
 	apiStat                *me_statserveapi.StatServeAPI
 	notiStat               *me_statnoti.StatNotification
 	errStat                *me_statapierror.StatAPIError
-	marshalBodyFn          func(body interface{}, oldBuffToAppend []byte) ([]byte, byte, error)
-	unmarshalPacketFn      func(h me_packet.Header, bodyData []byte) (interface{}, error)
 	DemuxReq2BytesAPIFnMap [me_idcmd.CommandID_Count]func(
 		me interface{}, hd me_packet.Header, rbody []byte) (
 		me_packet.Header, interface{}, error)
@@ -96,8 +97,8 @@ func NewServer(config *ServerConfig) *Server {
 		fmt.Printf("Too early sendRecvStop call\n")
 	}
 
-	svr.marshalBodyFn = me_gob.MarshalBodyFn
-	svr.unmarshalPacketFn = me_gob.UnmarshalPacket
+	marshalBodyFn = me_json.MarshalBodyFn
+	unmarshalPacketFn = me_json.UnmarshalPacket
 	svr.DemuxReq2BytesAPIFnMap = [...]func(
 		me interface{}, hd me_packet.Header, rbody []byte) (
 		me_packet.Header, interface{}, error){
@@ -177,7 +178,7 @@ func (svr *Server) serveWebSocketClient(ctx context.Context, w http.ResponseWrit
 
 	// start client service
 	c2sc.StartServeWS(ctx, wsConn,
-		readTimeoutSec, writeTimeoutSec, svr.marshalBodyFn)
+		readTimeoutSec, writeTimeoutSec, marshalBodyFn)
 
 	// connection cleanup here
 	wsConn.Close()
@@ -237,7 +238,7 @@ func (svr *Server) serveTCPClient(ctx context.Context, conn *net.TCPConn) {
 
 	// start client service
 	c2sc.StartServeTCP(ctx, conn,
-		readTimeoutSec, writeTimeoutSec, svr.marshalBodyFn)
+		readTimeoutSec, writeTimeoutSec, marshalBodyFn)
 
 	// connection cleanup here
 	conn.Close()
@@ -269,7 +270,7 @@ func (svr *Server) bytesAPIFn_ReqInvalid(
 func (svr *Server) bytesAPIFn_ReqEcho(
 	me interface{}, hd me_packet.Header, rbody []byte) (
 	me_packet.Header, interface{}, error) {
-	robj, err := svr.unmarshalPacketFn(hd, rbody)
+	robj, err := unmarshalPacketFn(hd, rbody)
 	if err != nil {
 		return hd, nil, fmt.Errorf("Packet type miss match %v", rbody)
 	}
