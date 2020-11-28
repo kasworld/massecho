@@ -223,14 +223,24 @@ func (svr *Server) serveTCP(ctx context.Context, port string) {
 func (svr *Server) serveTCPClient(ctx context.Context, conn *net.TCPConn) {
 
 	connID := idu64str.G_Maker.New()
-	c2sc := me_serveconnbyte.NewWithStats(
+	// c2sc := me_serveconnbyte.NewWithStats(
+	// 	connID,
+	// 	sendBufferSize,
+	// 	me_authorize.NewAllSet(),
+	// 	svr.SendStat, svr.RecvStat,
+	// 	svr.apiStat,
+	// 	svr.notiStat,
+	// 	svr.errStat,
+	// 	svr.DemuxReq2BytesAPIFnMap)
+
+	c2sc := me_serveconnbyte.New(
 		connID,
 		sendBufferSize,
 		me_authorize.NewAllSet(),
 		svr.SendStat, svr.RecvStat,
-		svr.apiStat,
-		svr.notiStat,
-		svr.errStat,
+		// svr.apiStat,
+		// svr.notiStat,
+		// svr.errStat,
 		svr.DemuxReq2BytesAPIFnMap)
 
 	// add to conn manager
