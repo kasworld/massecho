@@ -9,17 +9,15 @@ $PROTOCOL_GOS_VERSION=makesha256sum protocol_me/*.enum protocol_me/me_obj/protoc
 Write-Output "Protocol GOS Version: ${PROTOCOL_GOS_VERSION}"
 Write-Output "genprotocol -ver=${PROTOCOL_GOS_VERSION} -basedir=protocol_me -prefix=me -statstype=int"
 genprotocol -ver="${PROTOCOL_GOS_VERSION}" -basedir=protocol_me -prefix=me -statstype=int
-Set-Location protocol_me
-goimports -w .
-Set-Location ..
+goimports -w protocol_me
+
+################################################################################
+msgp -file protocol_me/me_obj/obj.go -o protocol_me/me_obj/obj_gen.go -tests=0 
 
 ################################################################################
 # generate enum
 Write-Output "generate enums"
-
-Set-Location enum
-goimports -w .
-Set-Location ..
+goimports -w enum
 
 $Data_VERSION=makesha256sum config/gameconst/*.go config/gamedata/*.go enum/*.enum
 Write-Output "Data Version: ${Data_VERSION}"

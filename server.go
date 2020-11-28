@@ -27,7 +27,7 @@ import (
 	"github.com/kasworld/massecho/protocol_me/me_connbytemanager"
 	"github.com/kasworld/massecho/protocol_me/me_error"
 	"github.com/kasworld/massecho/protocol_me/me_idcmd"
-	"github.com/kasworld/massecho/protocol_me/me_json"
+	"github.com/kasworld/massecho/protocol_me/me_msgp"
 	"github.com/kasworld/massecho/protocol_me/me_obj"
 	"github.com/kasworld/massecho/protocol_me/me_packet"
 	"github.com/kasworld/massecho/protocol_me/me_serveconnbyte"
@@ -97,8 +97,8 @@ func NewServer(config *ServerConfig) *Server {
 		fmt.Printf("Too early sendRecvStop call\n")
 	}
 
-	marshalBodyFn = me_json.MarshalBodyFn
-	unmarshalPacketFn = me_json.UnmarshalPacket
+	marshalBodyFn = me_msgp.MarshalBodyFn
+	unmarshalPacketFn = me_msgp.UnmarshalPacket
 	svr.DemuxReq2BytesAPIFnMap = [...]func(
 		me interface{}, hd me_packet.Header, rbody []byte) (
 		me_packet.Header, interface{}, error){

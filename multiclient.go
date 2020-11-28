@@ -21,7 +21,7 @@ import (
 	"github.com/kasworld/massecho/protocol_me/me_conntcp"
 	"github.com/kasworld/massecho/protocol_me/me_connwsgorilla"
 	"github.com/kasworld/massecho/protocol_me/me_idcmd"
-	"github.com/kasworld/massecho/protocol_me/me_json"
+	"github.com/kasworld/massecho/protocol_me/me_msgp"
 	"github.com/kasworld/massecho/protocol_me/me_obj"
 	"github.com/kasworld/massecho/protocol_me/me_packet"
 	"github.com/kasworld/massecho/protocol_me/me_pid2rspfn"
@@ -61,8 +61,8 @@ func main() {
 	ads.ApplyFlagTo(config)
 	fmt.Println(prettystring.PrettyString(config, 4))
 
-	marshalBodyFn = me_json.MarshalBodyFn
-	unmarshalPacketFn = me_json.UnmarshalPacket
+	marshalBodyFn = me_msgp.MarshalBodyFn
+	unmarshalPacketFn = me_msgp.UnmarshalPacket
 
 	chErr := make(chan error)
 	go multirun.Run(
