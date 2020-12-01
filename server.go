@@ -251,6 +251,7 @@ func (svr *Server) serveTCPClient(ctx context.Context, conn *net.TCPConn) {
 		readTimeoutSec, writeTimeoutSec, marshalBodyFn)
 
 	// connection cleanup here
+	c2sc.Disconnect()
 	conn.Close()
 
 	// del from conn manager
