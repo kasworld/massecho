@@ -211,7 +211,8 @@ func (app *App) connectTCP(ctx context.Context) {
 }
 
 func (app *App) reqEcho() error {
-	msg := fmt.Sprintf("hello world from %v", app.config.Nickname)
+	msg := ""
+	// msg := fmt.Sprintf("hello world from %v", app.config.Nickname)
 	return app.ReqWithRspFn(
 		me_idcmd.Echo,
 		&me_obj.ReqEcho_data{Msg: msg},
