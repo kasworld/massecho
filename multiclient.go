@@ -148,18 +148,28 @@ func (app *App) Run(mainctx context.Context) {
 		app.connectWS(ctx)
 	}
 
-	timerPingTk := time.NewTicker(time.Millisecond * time.Duration(app.config.PacketIntervalMS))
-	defer timerPingTk.Stop()
+	if app.config.PacketIntervalMS == 0 {
+		go app.reqEcho()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			}
+		}
+	} else {
+		timerPingTk := time.NewTicker(time.Millisecond * time.Duration(app.config.PacketIntervalMS))
+		defer timerPingTk.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-timerPingTk.C:
+				go app.reqEcho()
 
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-timerPingTk.C:
-			go app.reqEcho()
-
+			}
 		}
 	}
+
 }
 
 func (app *App) connectWS(ctx context.Context) {
@@ -206,6 +216,7 @@ func (app *App) reqEcho() error {
 		me_idcmd.Echo,
 		&me_obj.ReqEcho_data{Msg: msg},
 		func(hd me_packet.Header, rsp interface{}) error {
+			go app.reqEcho()
 			return nil
 		},
 	)

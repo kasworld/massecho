@@ -2,12 +2,11 @@
 
 package me_const
 
-import "time"
-
 const (
 	// MaxBodyLen set to max body len, affect send/recv buffer size
 	MaxBodyLen = 0xffff
 
 	// ServerAPICallTimeOutDur api call watchdog timer
-	ServerAPICallTimeOutDur = time.Second * 2
+	ServerAPICallTimeOutDur = 0
+	// ServerAPICallTimeOutDur = time.Second * 2
 )
