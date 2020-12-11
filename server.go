@@ -223,24 +223,12 @@ func (svr *Server) serveTCP(ctx context.Context, port string) {
 func (svr *Server) serveTCPClient(ctx context.Context, conn *net.TCPConn) {
 
 	connID := idu64str.G_Maker.New()
-	// c2sc := me_serveconnbyte.NewWithStats(
-	// 	connID,
-	// 	sendBufferSize,
-	// 	me_authorize.NewAllSet(),
-	// 	svr.SendStat, svr.RecvStat,
-	// 	svr.apiStat,
-	// 	svr.notiStat,
-	// 	svr.errStat,
-	// 	svr.DemuxReq2BytesAPIFnMap)
 
 	c2sc := me_serveconnbyte.New(
 		connID,
 		sendBufferSize,
 		me_authorize.NewAllSet(),
 		svr.SendStat, svr.RecvStat,
-		// svr.apiStat,
-		// svr.notiStat,
-		// svr.errStat,
 		svr.DemuxReq2BytesAPIFnMap)
 
 	// add to conn manager
@@ -263,19 +251,7 @@ func (svr *Server) serveTCPClient(ctx context.Context, conn *net.TCPConn) {
 func (svr *Server) bytesAPIFn_ReqInvalid(
 	me interface{}, hd me_packet.Header, rbody []byte) (
 	me_packet.Header, interface{}, error) {
-	// robj, err := gUnmarshalPacket(hd, rbody)
-	// if err != nil {
-	// 	return hd, nil, fmt.Errorf("Packet type miss match %v", rbody)
-	// }
-	// recvBody, ok := robj.(*me_obj.ReqInvalid_data)
-	// if !ok {
-	// 	return hd, nil, fmt.Errorf("Packet type miss match %v", robj)
-	// }
-	// _ = recvBody
-
-	hd.ErrorCode = me_error.None
-	sendBody := &me_obj.RspInvalid_data{}
-	return hd, sendBody, nil
+	return hd, nil, fmt.Errorf("invalid packet")
 }
 
 func (svr *Server) bytesAPIFn_ReqEcho(
