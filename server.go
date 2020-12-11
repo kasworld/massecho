@@ -63,8 +63,8 @@ func main() {
 	svr.Run()
 }
 
-var marshalBodyFn func(body interface{}, oldBuffToAppend []byte) ([]byte, byte, error)
-var unmarshalPacketFn func(h me_packet.Header, bodyData []byte) (interface{}, error)
+var marshalBodyFn = me_msgp.MarshalBodyFn
+var unmarshalPacketFn = me_msgp.UnmarshalPacket
 
 type Server struct {
 	config       *ServerConfig
@@ -97,8 +97,6 @@ func NewServer(config *ServerConfig) *Server {
 		fmt.Printf("Too early sendRecvStop call\n")
 	}
 
-	marshalBodyFn = me_msgp.MarshalBodyFn
-	unmarshalPacketFn = me_msgp.UnmarshalPacket
 	svr.DemuxReq2BytesAPIFnMap = [...]func(
 		me interface{}, hd me_packet.Header, rbody []byte) (
 		me_packet.Header, interface{}, error){
@@ -257,7 +255,8 @@ func (svr *Server) bytesAPIFn_ReqInvalid(
 func (svr *Server) bytesAPIFn_ReqEcho(
 	me interface{}, hd me_packet.Header, rbody []byte) (
 	me_packet.Header, interface{}, error) {
-	robj, err := unmarshalPacketFn(hd, rbody)
+	robj, err := me_msgp.Unmarshal_ReqEcho(hd, rbody)
+	// robj, err := unmarshalPacketFn(hd, rbody)
 	if err != nil {
 		return hd, nil, fmt.Errorf("Packet type miss match %v", rbody)
 	}

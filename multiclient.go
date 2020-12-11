@@ -37,8 +37,8 @@ const (
 	writeTimeoutSec = 3 * time.Second
 )
 
-var marshalBodyFn func(body interface{}, oldBuffToAppend []byte) ([]byte, byte, error)
-var unmarshalPacketFn func(h me_packet.Header, bodyData []byte) (interface{}, error)
+var marshalBodyFn = me_msgp.MarshalBodyFn
+var unmarshalPacketFn = me_msgp.UnmarshalPacket
 
 type MultiClientConfig struct {
 	ConnectToServer  string `default:"localhost:8080" argname:""`
@@ -60,9 +60,6 @@ func main() {
 	ads.SetDefaultToNonZeroField(config)
 	ads.ApplyFlagTo(config)
 	fmt.Println(prettystring.PrettyString(config, 4))
-
-	marshalBodyFn = me_msgp.MarshalBodyFn
-	unmarshalPacketFn = me_msgp.UnmarshalPacket
 
 	chErr := make(chan error)
 	go multirun.Run(
@@ -217,6 +214,7 @@ func (app *App) reqEcho() error {
 		me_idcmd.Echo,
 		&me_obj.ReqEcho_data{Msg: msg},
 		func(hd me_packet.Header, rsp interface{}) error {
+			// robj, err := me_msgp.Unmarshal_RsqEcho(hd, rsp.([]byte))
 			go app.reqEcho()
 			return nil
 		},
@@ -228,21 +226,15 @@ func (app *App) handleSentPacket(pk *me_packet.Packet) error {
 }
 
 func (app *App) handleRecvPacket(header me_packet.Header, body []byte) error {
-	robj, err := unmarshalPacketFn(header, body)
-	if err != nil {
-		return err
-	}
-
 	switch header.FlowType {
 	default:
 		return fmt.Errorf("Invalid packet type %v %v", header, body)
 	case me_packet.Notification:
 		//process noti here
-		// robj, err := unmarshalPacketFn(header, body)
 
 	case me_packet.Response:
 		// process response
-		if err := app.pid2recv.HandleRsp(header, robj); err != nil {
+		if err := app.pid2recv.HandleRsp(header, body); err != nil {
 			return err
 		}
 	}
