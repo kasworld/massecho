@@ -255,16 +255,12 @@ func (svr *Server) bytesAPIFn_ReqInvalid(
 func (svr *Server) bytesAPIFn_ReqEcho(
 	me interface{}, hd me_packet.Header, rbody []byte) (
 	me_packet.Header, interface{}, error) {
-	robj, err := me_msgp.Unmarshal_ReqEcho(hd, rbody)
-	// robj, err := unmarshalPacketFn(hd, rbody)
-	if err != nil {
-		return hd, nil, fmt.Errorf("Packet type miss match %v", rbody)
+
+	// msgp only
+	var recvBody me_obj.ReqEcho_data
+	if _, err := recvBody.UnmarshalMsg(rbody); err != nil {
+		return hd, nil, err
 	}
-	recvBody, ok := robj.(*me_obj.ReqEcho_data)
-	if !ok {
-		return hd, nil, fmt.Errorf("Packet type miss match %v", robj)
-	}
-	_ = recvBody
 
 	hd.ErrorCode = me_error.None
 	sendBody := &me_obj.RspEcho_data{recvBody.Msg}
