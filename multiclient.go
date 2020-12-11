@@ -106,7 +106,7 @@ type App struct {
 	config            AppArg
 	c2scWS            *me_connwsgorilla.Connection
 	c2scTCP           *me_conntcp.Connection
-	EnqueueSendPacket func(pk me_packet.Packet) error
+	EnqueueSendPacket func(pk *me_packet.Packet) error
 	runResult         error
 
 	sendRecvStop func()
@@ -173,12 +173,7 @@ func (app *App) Run(mainctx context.Context) {
 }
 
 func (app *App) connectWS(ctx context.Context) {
-	app.c2scWS = me_connwsgorilla.New(
-		readTimeoutSec, writeTimeoutSec,
-		marshalBodyFn,
-		app.handleRecvPacket,
-		app.handleSentPacket,
-	)
+	app.c2scWS = me_connwsgorilla.New(10)
 	if err := app.c2scWS.ConnectTo(app.config.ConnectToServer); err != nil {
 		app.runResult = err
 		fmt.Printf("%v\n", err)
@@ -187,17 +182,17 @@ func (app *App) connectWS(ctx context.Context) {
 	}
 	app.EnqueueSendPacket = app.c2scWS.EnqueueSendPacket
 	go func(ctx context.Context) {
-		app.runResult = app.c2scWS.Run(ctx)
+		app.runResult = app.c2scWS.Run(ctx,
+			readTimeoutSec, writeTimeoutSec,
+			marshalBodyFn,
+			app.handleRecvPacket,
+			app.handleSentPacket,
+		)
 	}(ctx)
 }
 
 func (app *App) connectTCP(ctx context.Context) {
-	app.c2scTCP = me_conntcp.New(
-		readTimeoutSec, writeTimeoutSec,
-		marshalBodyFn,
-		app.handleRecvPacket,
-		app.handleSentPacket,
-	)
+	app.c2scTCP = me_conntcp.New(10)
 	if err := app.c2scTCP.ConnectTo(app.config.ConnectToServer); err != nil {
 		app.runResult = err
 		fmt.Printf("%v\n", err)
@@ -206,7 +201,12 @@ func (app *App) connectTCP(ctx context.Context) {
 	}
 	app.EnqueueSendPacket = app.c2scTCP.EnqueueSendPacket
 	go func(ctx context.Context) {
-		app.runResult = app.c2scTCP.Run(ctx)
+		app.runResult = app.c2scTCP.Run(ctx,
+			readTimeoutSec, writeTimeoutSec,
+			marshalBodyFn,
+			app.handleRecvPacket,
+			app.handleSentPacket,
+		)
 	}(ctx)
 }
 
@@ -223,7 +223,7 @@ func (app *App) reqEcho() error {
 	)
 }
 
-func (app *App) handleSentPacket(header me_packet.Header) error {
+func (app *App) handleSentPacket(pk *me_packet.Packet) error {
 	return nil
 }
 
@@ -253,7 +253,7 @@ func (app *App) ReqWithRspFn(cmd me_idcmd.CommandID, body interface{},
 	fn me_pid2rspfn.HandleRspFn) error {
 
 	pid := app.pid2recv.NewPID(fn)
-	spk := me_packet.Packet{
+	spk := &me_packet.Packet{
 		Header: me_packet.Header{
 			Cmd:      uint16(cmd),
 			ID:       pid,
