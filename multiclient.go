@@ -208,13 +208,17 @@ func (app *App) connectTCP(ctx context.Context) {
 }
 
 func (app *App) reqEcho() error {
-	msg := ""
-	// msg := fmt.Sprintf("hello world from %v", app.config.Nickname)
+	// msg := ""
+	msg := fmt.Sprintf("hello world from %v", app.config.Nickname)
 	return app.ReqWithRspFn(
 		me_idcmd.Echo,
 		&me_obj.ReqEcho_data{Msg: msg},
 		func(hd me_packet.Header, rsp interface{}) error {
-			// robj, err := me_msgp.Unmarshal_RsqEcho(hd, rsp.([]byte))
+			robj, err := me_msgp.Unmarshal_RspEcho(hd, rsp.([]byte))
+			_ = robj
+			if err != nil {
+				return err
+			}
 			go app.reqEcho()
 			return nil
 		},

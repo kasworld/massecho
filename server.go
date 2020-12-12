@@ -257,10 +257,16 @@ func (svr *Server) bytesAPIFn_ReqEcho(
 	me_packet.Header, interface{}, error) {
 
 	// msgp only
-	var recvBody me_obj.ReqEcho_data
-	if _, err := recvBody.UnmarshalMsg(rbody); err != nil {
-		return hd, nil, err
+	// var recvBody me_obj.ReqEcho_data
+	// if _, err := recvBody.UnmarshalMsg(rbody); err != nil {
+	// 	return hd, nil, err
+	// }
+
+	robj, err := me_msgp.Unmarshal_ReqEcho(hd, rbody)
+	if err != nil {
+		return hd, nil, fmt.Errorf("Unmarshal_ReqEcho %v", err)
 	}
+	recvBody := robj.(*me_obj.ReqEcho_data)
 
 	hd.ErrorCode = me_error.None
 	sendBody := &me_obj.RspEcho_data{recvBody.Msg}
