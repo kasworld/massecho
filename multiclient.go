@@ -140,9 +140,15 @@ func (app *App) Run(mainctx context.Context) {
 		fmt.Printf("unsupported nettype %v\n", app.config.NetType)
 		return
 	case "tcp":
-		app.connectTCP(ctx)
+		if err := app.connectTCP(ctx); err != nil {
+			fmt.Printf("connectWS %v %v\n", app, err)
+			return
+		}
 	case "ws":
-		app.connectWS(ctx)
+		if err := app.connectWS(ctx); err != nil {
+			fmt.Printf("connectWS %v %v\n", app, err)
+			return
+		}
 	}
 
 	if app.config.PacketIntervalMS == 0 {
@@ -169,13 +175,12 @@ func (app *App) Run(mainctx context.Context) {
 
 }
 
-func (app *App) connectWS(ctx context.Context) {
+func (app *App) connectWS(ctx context.Context) error {
 	app.c2scWS = me_connwsgorilla.New(10)
 	if err := app.c2scWS.ConnectTo(app.config.ConnectToServer); err != nil {
 		app.runResult = err
-		fmt.Printf("%v\n", err)
 		app.sendRecvStop()
-		return
+		return err
 	}
 	app.EnqueueSendPacket = app.c2scWS.EnqueueSendPacket
 	go func(ctx context.Context) {
@@ -186,15 +191,16 @@ func (app *App) connectWS(ctx context.Context) {
 			app.handleSentPacket,
 		)
 	}(ctx)
+	return nil
 }
 
-func (app *App) connectTCP(ctx context.Context) {
+func (app *App) connectTCP(ctx context.Context) error {
 	app.c2scTCP = me_conntcp.New(10)
 	if err := app.c2scTCP.ConnectTo(app.config.ConnectToServer); err != nil {
 		app.runResult = err
-		fmt.Printf("%v\n", err)
+		fmt.Printf("connectTCP %v %v\n", app, err)
 		app.sendRecvStop()
-		return
+		return err
 	}
 	app.EnqueueSendPacket = app.c2scTCP.EnqueueSendPacket
 	go func(ctx context.Context) {
@@ -205,6 +211,7 @@ func (app *App) connectTCP(ctx context.Context) {
 			app.handleSentPacket,
 		)
 	}(ctx)
+	return nil
 }
 
 func (app *App) reqEcho() error {
